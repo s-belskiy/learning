@@ -4,8 +4,8 @@ const api = axios.create({
     baseURL: 'https://reqres.in/'
 })
 
-export const getUsers = async () => {
-    return await api.get('/api/users');
+export const getUsers = async (params) => {
+    return await api.get(`/api/users?${params}`);
 }
 
 export const getUser = async (id) => {

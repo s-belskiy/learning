@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo, useState} from "react";
 import {useMutation, useQuery} from "react-query";
 import * as api from "./api/users.api";
-import {Backdrop, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow} from "@mui/material";
+import {Backdrop, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow, TextField} from "@mui/material";
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import User from "./User/User";
@@ -13,13 +13,13 @@ const Users = () => {
 
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [deletingUserId, setDeletingUserId] = useState(null);
+    const [search, setSearch] = useState('');
 
-    const {data, isLoading, isError} = useQuery('users', api.getUsers);
-    const {isLoading: isUpdating, mutate} = useMutation((userId) => api.deleteUser(userId))
-
+    const {data, isLoading, isError} = useQuery('users', () => api.getUsers('per_page=100'));
+    const {mutate} = useMutation((userId) => api.deleteUser(userId))
     const list = data?.data?.data || [];
 
-    const handleDelete = useCallback(async ()=> {
+    const handleDelete = useCallback(async () => {
         await mutate(deletingUserId);
         setDeletingUserId(null);
     }, [deletingUserId])
@@ -28,8 +28,27 @@ const Users = () => {
         return COLUMNS.map(column => <TableCell key={column}>{column}</TableCell>);
     }, []);
 
+    const filteredList = useMemo(() => {
+        if (search)
+            return list?.filter(listItem => listItem.first_name.toUpperCase().includes(search.toUpperCase())
+                || listItem.last_name.toUpperCase().includes(search.toUpperCase())
+                || listItem.email.toUpperCase().includes(search.toUpperCase())
+            );
+        else return list;
+    }, [list, search]);
+
+    const searchInput = useMemo(() => {
+        return <TableCell colSpan={list.length}>
+            <div style={{width: '100%', display: 'flex'}}>
+                <TextField style={{marginLeft: 'auto'}} name="search" placeholder="search..."
+                           type="search" value={search}
+                           onChange={(event) => setSearch(event.target.value)} variant="standard"/>
+            </div>
+        </TableCell>
+    }, [search, list]);
+
     const body = useMemo(() => {
-        return list?.map(row => <TableRow key={row.id}>
+        return filteredList?.map(row => <TableRow key={row.id}>
             <TableCell>{row.first_name}</TableCell>
             <TableCell>{row.last_name}</TableCell>
             <TableCell>{row.email}</TableCell>
@@ -39,18 +58,21 @@ const Users = () => {
             </TableCell>
         </TableRow>);
 
-    }, [list, setSelectedUserId]);
+    }, [filteredList, setSelectedUserId, setDeletingUserId]);
 
     if (isError)
         return <div>Упс... Что-то пошло не так!</div>
 
     return (
-        <div style={{position: "relative"}}>
+        <div style={{position: "relative", padding: '1em'}}>
             {isLoading && <Backdrop open>
                 <CircularProgress color="inherit"/>
             </Backdrop>}
-            <Table sx={{minWidth: 650}}>
+            <Table>
                 <TableHead>
+                    <TableRow>
+                        {searchInput}
+                    </TableRow>
                     <TableRow>
                         {header}
                     </TableRow>
