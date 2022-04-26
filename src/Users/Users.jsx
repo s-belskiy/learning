@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from "react";
+import React, {useCallback, useMemo, useState} from "react";
 import {useMutation, useQuery} from "react-query";
 import * as api from "./api/users.api";
 import {Backdrop, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow} from "@mui/material";
@@ -18,6 +18,11 @@ const Users = () => {
     const {isLoading: isUpdating, mutate} = useMutation((userId) => api.deleteUser(userId))
 
     const list = data?.data?.data || [];
+
+    const handleDelete = useCallback(async ()=> {
+        await mutate(deletingUserId);
+        setDeletingUserId(null);
+    }, [deletingUserId])
 
     const header = useMemo(() => {
         return COLUMNS.map(column => <TableCell key={column}>{column}</TableCell>);
@@ -39,8 +44,6 @@ const Users = () => {
     if (isError)
         return <div>Упс... Что-то пошло не так!</div>
 
-    console.log(deletingUserId)
-
     return (
         <div style={{position: "relative"}}>
             {isLoading && <Backdrop open>
@@ -59,7 +62,7 @@ const Users = () => {
             {!!selectedUserId &&
                 <User key={selectedUserId} handleClose={() => setSelectedUserId(null)} userId={selectedUserId}/>}
             {!!deletingUserId && <ConfirmModal handleClose={() => setDeletingUserId(null)}
-                                               handleSubmit={() => mutate(deletingUserId)}
+                                               handleSubmit={handleDelete}
                                                title={"Удаление пользователя"}
                                                message={"Пользователь будет удален без возможности восстановления. Продолжить?"}/>}
         </div>
